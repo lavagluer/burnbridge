@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>진격의 다리: 배수의 진 (정직한 +1 적립판)</title>
+    <style>
+        :root {
+            --bg-color: #080b10;
+            --panel-color: #121620;
+            --border-color: #262c36;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --eco-color: #00ff66;
+            --law-color: #ff9900;
+            --gold-color: #ffd700;
+            --crit-color: #ff007f;
+            --stop-color: #ff3333;
+            --river-base: #050b1e;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: var(--accent-color); text-align: center; font-size: 2.2rem;
+            text-shadow: 0 0 20px rgba(88, 166, 255, 0.5); margin-bottom: 5px;
+        }
+
+        .subtitle { color: #8b949e; text-align: center; margin-bottom: 25px; font-size: 1.1rem; }
+        .container { display: flex; gap: 25px; max-width: 1200px; width: 100%; flex-wrap: wrap; }
+
+        .panel {
+            background-color: var(--panel-color); border: 2px solid var(--border-color);
+            border-radius: 14px; padding: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+            flex: 1; min-width: 380px; display: flex; flex-direction: column; gap: 15px; position: relative;
+        }
+        .map-panel { flex: 1.3; min-width: 450px; }
+
+        .rpg-status {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid var(--gold-color); border-radius: 8px; padding: 14px; text-align: center;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .title-badge {
+            color: #fff; background: linear-gradient(45deg, #ff9900, var(--gold-color));
+            padding: 3px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; display: inline-block; margin-top: 5px;
+        }
+
+        .xp-bar-bg { background: #1e293b; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 8px; border: 1px solid #334155; }
+        .xp-bar-fill { background: linear-gradient(90deg, var(--gold-color), #ff9900); width: 0%; height: 100%; transition: width 0.3s ease; }
+
+        .combo-box {
+            background: linear-gradient(90deg, rgba(255, 0, 127, 0.4), rgba(0, 240, 255, 0.4));
+            border: 2px solid #fff; box-shadow: 0 0 25px var(--crit-color), inset 0 0 10px #fff;
+            padding: 12px; border-radius: 8px; text-align: center; font-weight: 900; font-size: 1.3rem;
+            color: #fff; display: none;
+        }
+        .combo-box.pulse { animation: pulse 0.2s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(1) rotate(-1deg); } 100% { transform: scale(1.06) rotate(1deg); } }
+
+        .timer-container {
+            background-color: #050811; border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 15px; text-align: center;
+        }
+        .timer-display {
+            font-size: 3rem; font-family: monospace; font-weight: bold; color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(88, 166, 255, 0.3); margin: 5px 0;
+        }
+        .timer-controls { display: flex; gap: 6px; justify-content: center; }
+
+        .day-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .day-btn {
+            background-color: #1f242e; border: 1px solid var(--border-color); color: #8b949e;
+            padding: 12px 4px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.95rem; text-align: center;
+        }
+        .day-btn.active { background-color: var(--accent-color); border-color: var(--accent-color); color: #0d1117; box-shadow: 0 0 15px rgba(88, 166, 255, 0.5); }
+        .day-btn.completed { border-color: var(--eco-color); color: var(--eco-color); background-color: rgba(0, 255, 102, 0.08); }
+
+        .status-card { background: #050811; border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; }
+        .time-badge { background-color: rgba(255, 215, 0, 0.15); color: var(--gold-color); border: 1px solid var(--gold-color); padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; display: inline-block; margin-bottom: 8px; }
+
+        .inventory-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .inventory-item { 
+            background: #1a202c; border: 1px solid var(--border-color); border-radius: 8px; 
+            padding: 12px; text-align: center; display: flex; flex-direction: column; align-items: center;
+            transition: all 0.1s ease;
+        }
+        .inventory-item.item-shake {
+            animation: itemShake 0.15s cubic-bezier(.36,.07,.19,.97) both;
+            border-color: var(--gold-color); box-shadow: 0 0 25px var(--gold-color);
+        }
+        @keyframes itemShake {
+            10%, 90% { transform: translate3d(-2px, -1px, 0); }
+            30%, 70% { transform: translate3d(-4px, 2px, 0); }
+            40%, 60% { transform: translate3d(4px, -2px, 0); }
+        }
+        
+        .asset-stack-container {
+            width: 100%; height: 120px; background: #040712; border: 2px solid #242b35;
+            border-radius: 6px; margin-bottom: 8px; position: relative; overflow-y: auto;
+            display: flex; flex-direction: column-reverse; align-items: center; padding: 5px 0; gap: 1px;
+        }
+        .stacked-img {
+            width: 85%; height: auto; max-height: 22px; object-fit: contain;
+            filter: drop-shadow(0 3px 5px rgba(0,0,0,0.8));
+            animation: itemFall 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.3) forwards;
+        }
+        @keyframes itemFall { 0% { transform: translateY(-50px) scale(1.6); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+
+        .inv-count { font-size: 1.8rem; font-weight: bold; margin: 3px 0; }
+        .eco-text { color: var(--eco-color); text-shadow: 0 0 10px rgba(0,255,102,0.3); }
+        .law-text { color: var(--law-color); text-shadow: 0 0 10px rgba(255,153,0,0.3); }
+
+        .btn-dopamine {
+            width: 100%; padding: 14px; font-size: 1.05rem; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 6px 16px rgba(0,0,0,0.4); transition: transform 0.1s;
+        }
+        .btn-dopamine:active { transform: scale(0.95); }
+        .btn-eco { background: linear-gradient(135deg, #00ff66 0%, #047857 100%); color: white; }
+        .btn-law { background: linear-gradient(135deg, #ff9900 0%, #b45309 100%); color: white; }
+        .btn-build { background: linear-gradient(135deg, #d946ef 0%, #3b82f6 100%); color: white; margin-top: 10px; }
+
+        .spark { position: absolute; width: 10px; height: 10px; border-radius: 50%; pointer-events: none; z-index: 100; animation: shoot 0.55s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+        @keyframes shoot { 0% { transform: translate(0,0) scale(1.3); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(0.1); opacity: 0; } }
+
+        .bridge-canvas {
+            background-color: #03050a; border: 2px solid var(--border-color); border-radius: 14px; height: 340px; position: relative; overflow: hidden;
+            display: flex; align-items: flex-end; justify-content: center; padding-bottom: 20px;
+            box-shadow: inset 0 0 40px #000;
+        }
+        .bridge-canvas.shake { animation: screenShake 0.08s infinite; }
+        @keyframes screenShake {
+            0% { transform: translate(3px, 2px) rotate(0deg); }
+            20% { transform: translate(-2px, -3px) rotate(-1deg); }
+            40% { transform: translate(-4px, 0px) rotate(1deg); }
+            60% { transform: translate(0px, 3px) rotate(0deg); }
+            80% { transform: translate(2px, -2px) rotate(1deg); }
+            100% { transform: translate(1px, -3px) rotate(-1deg); }
+        }
+
+        .flash-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 99; opacity: 0; pointer-events: none; }
+        .flash-overlay.active { animation: flashAnim 0.5s cubic-bezier(0.1, 0.8, 0.3, 1); }
+        @keyframes flashAnim { 0% { opacity: 1; scale: 1.1; } 100% { opacity: 0; scale: 1; } }
+
+        .river-bg { position: absolute; width: 100%; height: 100%; background: var(--river-base); z-index: 1; top: 0; left: 0; }
+        .wave-neon {
+            position: absolute; width: 100%; height: 80px; bottom: 0; left: 0;
+            background: linear-gradient(0deg, rgba(0,240,255,0.03) 0%, transparent 100%); z-index: 2;
+        }
+        
+        .bridge-structure { position: relative; z-index: 3; width: 92%; height: 190px; display: flex; align-items: flex-end; justify-content: space-between; }
+        
+        .bridge-pier {
+            width: 8%; background: linear-gradient(180deg, #475569 0%, #1e293b 100%);
+            border: 2px solid #64748b; border-bottom: none; height: 70px; border-radius: 6px 6px 0 0;
+            opacity: 0.05; transform: translateY(90px); transition: all 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .bridge-pier.active { 
+            opacity: 1; transform: translateY(0); 
+            background: linear-gradient(180deg, #00ff66 0%, #0f172a 100%); border-color: #00ff66;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.8), inset 0 0 8px #fff; 
+        }
+
+        .live-deck-fill {
+            position: absolute; bottom: 64px; left: 0%; width: 0%; height: 20px;
+            background: linear-gradient(90deg, #ff007f, #ffd700, #00ffff, #00ff66);
+            border-radius: 5px; z-index: 5; box-shadow: 0 0 25px rgba(0, 240, 255, 0.7);
+            transition: width 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+        .live-deck-fill.overdrive {
+            background: linear-gradient(90deg, #ff0055, #ffd700, #ff0055) !important;
+            box-shadow: 0 0 45px #ff0055, inset 0 0 12px #fff !important;
+        }
+        .live-deck-fill.exploded {
+            background: linear-gradient(90deg, #334155 0%, #ff3333 35%, transparent 45%, transparent 55%, #ff3333 65%, #334155 100%) !important;
+            border-color: #ff3333 !important; box-shadow: 0 0 40px rgba(255, 51, 51, 0.9) !important;
+        }
+
+        .ghost-line { position: absolute; bottom: 64px; left: 0%; width: 100%; height: 20px; border: 2px dashed #475569; background: rgba(255,255,255,0.01); border-radius: 5px; z-index: 4; }
+
+        .cable-tower {
+            position: absolute; bottom: 64px; left: 50%; transform: translateX(-50%) translateY(90px);
+            width: 20px; height: 130px; background: #475569; opacity: 0; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); z-index: 4;
+        }
+        .cable-tower.active { opacity: 1; transform: translateX(-50%) translateY(0); background: linear-gradient(180deg, #ffd700 0%, #ff007f 100%); box-shadow: 0 0 40px rgba(255, 0, 127, 0.9); }
+        .cable-tower.exploded { transform: translateX(-50%) translateY(20px) rotate(20deg) !important; background: #ff3333 !important; opacity: 0.3 !important; }
+
+        .laser-cable {
+            position: absolute; background: linear-gradient(90deg, #ff007f, #00ffff);
+            height: 3px; transform-origin: top left; opacity: 0; transition: opacity 0.8s ease; z-index: 4;
+        }
+        .cable-tower.active .laser-cable { opacity: 1; }
+
+        .fire-particle { position: absolute; width: 8px; height: 8px; background-color: #ff5555; border-radius: 50%; z-index: 10; pointer-events: none; }
+
+        .logger-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        .logger-table th, .logger-table td { border: 1px solid var(--border-color); padding: 7px; text-align: center; }
+        .logger-table th { background: #1e293b; color: var(--gold-color); }
+        
+        .action-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .btn-boom {
+            background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%); color: white; border: none; padding: 14px 24px;
+            border-radius: 6px; font-weight: bold; font-size: 1.1rem; cursor: pointer; box-shadow: 0 0 20px rgba(255, 51, 51, 0.6);
+        }
+        
+        .reset-btn { background: transparent; color: #6b7280; border: 1px solid #374151; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+
+    <h1>THE ADVANCE BRIDGE: 스텔스 락인</h1>
+    <div class="subtitle">🧱 100% 정직한 보상 체계 - 클릭당 정확히 +1개씩 확정 적립</div>
+
+    <div class="container">
+        <!-- 왼쪽 패널 -->
+        <div class="panel" id="main-panel">
+            <div class="rpg-status">
+                <div style="font-weight:bold; color:var(--gold-color); font-size:1.1rem;">🎖️ 나의 등급: LV.<span id="player-level">1</span></div>
+                <div>기동 칭호: <span class="title-badge" id="player-title">방관자</span></div>
+                <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-bar"></div></div>
+            </div>
+
+            <div class="combo-box" id="combo-banner">🔥 HYPER COMBO X<span id="combo-count">1</span> 가동 중!</div>
+
+            <div class="timer-container">
+                <div class="timer-status" id="timer-label">⏰ 현재 과업 대기 중</div>
+                <div class="timer-display" id="timer-clock">00:00:00</div>
+                <div class="timer-controls">
+                    <button class="btn btn-eco" style="padding:6px 10px; font-size:0.8rem;" onclick="launchTimer(3600, 'eco')">📈 경제 1시간 시작</button>
+                    <button class="btn btn-law" style="padding:6px 10px; font-size:0.8rem;" onclick="launchTimer(600, 'law')">⚖️ 헌법 10분 시작</button>
+                    <button class="btn btn-stop" style="padding:6px 10px; font-size:0.8rem;" onclick="killTimer()">🛑 리셋</button>
+                </div>
+            </div>
+
+            <div class="day-grid" id="day-selector"></div>
+            <div class="status-card" id="mission-info"></div>
+
+            <div class="inventory-grid">
+                <div class="inventory-item" id="eco-item-box">
+                    <div class="asset-stack-container" id="eco-stack-container"></div>
+                    <div class="inv-title">🧱 다리 상판 (경제학)</div>
+                    <div class="inv-count eco-text" id="inv-eco">0</div>
+                    <button class="btn-dopamine btn-eco" onclick="earnMaterial('eco', event)">🧱 정직하게 +1개 획득</button>
+                </div>
+                <div class="inventory-item" id="law-item-box">
+                    <div class="asset-stack-container" id="law-stack-container"></div>
+                    <div class="inv-title">🔩 고정 볼트 (헌법)</div>
+                    <div class="inv-count law-text" id="inv-law">0</div>
+                    <button class="btn-dopamine btn-law" onclick="earnMaterial('law', event)">🔩 정직하게 +1개 획득</button>
+                </div>
+            </div>
+
+            <button class="btn-dopamine btn-build" onclick="buildBridgeSegment()">🌉 오늘 구역 다리 영구 결착 승인</button>
+
+            <div class="logger-box">
+                <div style="font-size:0.9rem; font-weight:bold; color:var(--accent-color);">📝 오늘 실제 순공 작업 시간 기록</div>
+                <div class="logger-inputs">
+                    <input type="number" id="log-hours" placeholder="시간" min="0">
+                    <input type="number" id="log-mins" placeholder="분" min="0" max="59">
+                    <button class="btn btn-eco" style="padding:0 15px;" onclick="saveDailyLog()">기록</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽 패널 (캔버스) -->
+        <div class="panel map-panel">
+            <h3>🌉 실시간 대교 결착 전진 현황 (<span id="progress-text" style="color:var(--accent-color)">0%</span>)</h3>
+            
+            <div class="bridge-canvas" id="canvas-area">
+                <div class="flash-overlay" id="flash-screen"></div>
+                <div class="river-bg" id="river-floor"></div>
+                <div class="wave-neon"></div>
+                
+                <div class="bridge-structure">
+                    <div class="cable-tower" id="tower">
+                        <div class="laser-cable" style="width: 140px; transform: rotate(28deg); left: 8px; top: 10px;"></div>
+                        <div class="laser-cable" style="width: 140px; transform: rotate(-28deg); right: 8px; top: 10px; transform-origin: top right;"></div>
+                        <div class="laser-cable" style="width: 190px; transform: rotate(18deg); left: 8px; top: 40px;"></div>
+                        <div class="laser-cable" style="width: 190px; transform: rotate(-18deg); right: 8px; top: 40px; transform-origin: top right;"></div>
+                    </div>
+                    <div class="bridge-pier" id="pier-1"></div>
+                    <div class="bridge-pier" id="pier-2"></div>
+                    <div class="bridge-pier" id="pier-3"></div>
+                    <div class="bridge-pier" id="pier-4"></div>
+                    <div class="bridge-pier" id="pier-5"></div>
+                    <div class="ghost-line"></div>
+                    <div class="live-deck-fill" id="live-deck"></div>
+                </div>
+            </div>
+
+            <div class="reward-visual-zone" style="background:#050811; border:1px solid var(--border-color); border-radius:8px; padding:12px; text-align:center;">
+                <div class="reward-unlocked-title">✨ 최근 해금된 거대 건축 기믹 연출</div>
+                <div id="reward-display" style="font-size:0.85rem; color:#a1a1aa;">
+                    아직 완공된 교량이 없습니다. 오늘 분량을 끝내고 결착 승인을 내려 요새 구조물을 올리세요!
+                </div>
+            </div>
+
+            <div>
+                <table class="logger-table">
+                    <thead>
+                        <tr><th>단계</th><th>목표 시간</th><th>요구량</th><th>실제 공부 기록</th><th>상태</th></tr>
+                    </thead>
+                    <tbody id="logger-table-body"></tbody>
+                </table>
+            </div>
+            
+            <div class="action-footer" id="footer-controls">
+                <button class="reset-btn" onclick="resetGame()">작전 초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PATH_WOOD = "wood.png";
+        const PATH_VOLT = "volt.png";
+
+        const gameData = [
+            { day: 1, targetTime: "3시간 30분", eco: 2, law: 9, name: "1구역 기단 안착", icon: "⚓", desc: "[교각 1호기 급속 기동] 초고밀도 강화 콘크리트 구조물이 강기슭에 박힙니다." },
+            { day: 2, targetTime: "4시간 30분", eco: 3, law: 9, name: "2구역 진입로 연장", icon: "🏗️", desc: "[진입 게이트 아키텍처 가동] 서쪽 진입로 외곽 기단이 웅장하게 떠오릅니다." },
+            { day: 3, targetTime: "5시간 30분", eco: 4, law: 9, name: "3구역 아치 조립", icon: "📐", desc: "[교각 2호기 완공] 하중을 분산시킬 입체 격자형 강철 삼각 트러스가 장착됩니다." },
+            { day: 4, targetTime: "6시간 30분", eco: 4, law: 15, name: "4구역 트러스 결합", icon: "⚡", desc: "[중앙 전진 상판 활성화] 다리의 절반 지점까지 와이어 지지대가 완전히 연결됩니다." },
+            { day: 5, targetTime: "7시간 30분", eco: 5, law: 15, name: "5구역 주탑 프레임", icon: "🗽", desc: "[초대형 중앙 사장교 주탑 기동] 강 한가운데 하늘을 찌를 듯한 주탑 기둥이 완성됩니다." },
+            { day: 6, targetTime: "8시간 00분", eco: 6, law: 12, name: "6구역 네온 와이어", icon: "🔗", desc: "[고장력 사이버 와이어 레이저 가동] 주탑에서 상판으로 수십 줄의 광선 케이블이 체결됩니다." },
+            { day: 7, targetTime: "8시간 00분", eco: 6, law: 12, name: "7구역 가이드 난간", icon: "🚥", desc: "[교각 4호기 완공] 다리 하단에 동부 도하 유도등과 가이드 레이저 장치가 배치됩니다." },
+            { day: 8, targetTime: "9시간 20분", eco: 6, law: 20, name: "8구역 종점 기단 결합", icon: "⛩️", desc: "[교각 5호기 도달 완료] 건너편 최종 생존 기지 입구 벽면 앵커에 다리가 도달했습니다." },
+            { day: 9, targetTime: "12시간 00분", eco: 8, law: 24, name: "9구역 최종 대결착 완료", icon: "🚀", desc: "[대교 전 구간 100% 동기화 마스터] 전체 교량이 영구 활성화되며 배수의 진 폭파가 활성화됩니다." }
+        ];
+
+        const TOTAL_COMPONENTS = 46 + 125;
+
+        let currentDay = 1;
+        let completedDays = JSON.parse(localStorage.getItem('v12_completed')) || [];
+        let savedInventory = JSON.parse(localStorage.getItem('v12_inventory')) || { eco: 0, law: 0 };
+        let totalEarnedCount = parseInt(localStorage.getItem('v12_total_earned')) || 0;
+        let playerLevel = parseInt(localStorage.getItem('v12_level')) || 1;
+        let playerXP = parseInt(localStorage.getItem('v12_xp')) || 0;
+        let timeLogs = JSON.parse(localStorage.getItem('v12_logs')) || {};
+        let isExploded = localStorage.getItem('v12_is_exploded') === 'true';
+        
+        let comboCount = 0;
+        let comboTimer = null;
+        let mainTimerInterval = null;
+        let comboMaxDuration = 0;
+
+        function getPlayerTitle(level) {
+            if (level >= 12) return "🔱 전설 속 차원 도하 마스터";
+            if (level >= 9) return "🌌 신화적 하이퍼 아키텍트";
+            if (level >= 6) return "👑 대륙 수석 토목관";
+            if (level >= 4) return "⚡ 정밀 교량 설계사";
+            if (level >= 2) return "🧱 자재 수송 요원";
+            return "🪵 방관자";
+        }
+
+        function initGame() {
+            document.getElementById('inv-eco').innerText = savedInventory.eco;
+            document.getElementById('inv-law').innerText = savedInventory.law;
+            document.getElementById('player-level').innerText = playerLevel;
+            document.getElementById('player-title').innerText = getPlayerTitle(playerLevel);
+            
+            const xpMax = playerLevel * 100;
+            document.getElementById('xp-bar').style.width = `${(playerXP / xpMax) * 100}%`;
+
+            const selector = document.getElementById('day-selector');
+            selector.innerHTML = '';
+            gameData.forEach(d => {
+                const btn = document.createElement('button');
+                btn.className = `day-btn ${d.day === currentDay ? 'active' : ''} ${completedDays.includes(d.day) ? 'completed' : ''}`;
+                btn.innerText = `Day ${d.day}`;
+                btn.onclick = () => { currentDay = d.day; initGame(); };
+                selector.appendChild(btn);
+            });
+
+            const currentData = gameData[currentDay - 1];
+            document.getElementById('mission-info').innerHTML = `
+                <div class="time-badge">⏱️ 하루 목표 순공: ${currentData.targetTime}</div>
+                <h3>Day ${currentData.day} : ${currentData.name}</h3>
+                <p>할당 요구치: <span class="eco-text" style="font-weight:bold;">🧱 상판 ${currentData.eco}개</span> | <span class="law-text" style="font-weight:bold;">🔩 볼트 ${currentData.law}개</span></p>
+            `;
+
+            let realTimeProgress = (totalEarnedCount / TOTAL_COMPONENTS) * 100;
+            if (realTimeProgress > 100) realTimeProgress = 100;
+            document.getElementById('progress-text').innerText = `${Math.min(100, Math.round(realTimeProgress))}%`;
+            
+            const liveDeck = document.getElementById('live-deck');
+            liveDeck.style.width = `${realTimeProgress}%`;
+
+            if (comboCount >= 5) liveDeck.classList.add('overdrive');
+            else liveDeck.classList.remove('overdrive');
+
+            if (isExploded) {
+                liveDeck.classList.add('exploded');
+                document.getElementById('tower').classList.add('exploded');
+            } else {
+                liveDeck.classList.remove('exploded');
+                document.getElementById('tower').classList.remove('exploded');
+            }
+
+            const progressCount = completedDays.length;
+            for (let i = 1; i <= 5; i++) {
+                const pier = document.getElementById(`pier-${i}`);
+                if (progressCount >= i * 1.8) pier.classList.add('active');
+                else pier.classList.remove('active');
+            }
+            if (progressCount >= 5) document.getElementById('tower').classList.add('active');
+            else document.getElementById('tower').classList.remove('active');
+
+            const rewardDisplay = document.getElementById('reward-display');
+            if (isExploded) {
+                rewardDisplay.innerHTML = `<span style="color:var(--stop-color); font-weight:bold;">🌋 배수의 진 가동 대성공! 다리가 영구 파괴되었습니다.</span>`;
+            } else if (progressCount > 0) {
+                const lastData = gameData[progressCount - 1];
+                rewardDisplay.innerHTML = `<span style="font-size:1.5rem; margin-bottom:2px; display:block;">${lastData.icon}</span><strong>${lastData.name} 완공!</strong><br><span style="color:#a1a1aa; font-size:0.8rem;">${lastData.desc}</span>`;
+            } else {
+                rewardDisplay.innerHTML = `아직 완공된 교량이 없습니다. 오늘 분량을 끝내고 결착 승인을 내려 요새 구조물을 올리세요!`;
+            }
+
+            refreshImageStacks();
+            renderTable();
+            renderFooterControls();
+        }
+
+        function launchTimer(seconds, type) {
+            clearInterval(mainTimerInterval);
+            comboMaxDuration = seconds;
+            
+            document.getElementById('timer-label').innerText = type === 'eco' ? '⚡ 경제학 1강 카운트다운 가동 중...' : '⚡ 헌법 1문항 카운트다운 가동 중...';
+            let duration = seconds;
+            renderClockUI(duration);
+
+            mainTimerInterval = setInterval(() => {
+                duration--;
+                renderClockUI(duration);
+
+                if (duration <= 0) {
+                    clearInterval(mainTimerInterval);
+                    playBeepSound();
+                    document.getElementById('timer-label').innerText = "🎉 집중 임무 통과! 자재 획득 버튼이 잠금 해제되었습니다.";
+                }
+            }, 1000);
+        }
+
+        function killTimer() {
+            clearInterval(mainTimerInterval);
+            document.getElementById('timer-clock').innerText = "00:00:00";
+            document.getElementById('timer-label').innerText = "⏰ 과업 대기 중";
+        }
+
+        function renderClockUI(secs) {
+            const h = Math.floor(secs / 3600).toString().padStart(2, '0');
+            const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+            const s = (secs % 60).toString().padStart(2, '0');
+            document.getElementById('timer-clock').innerText = `${h}:${m}:${s}`;
+        }
+
+        function refreshImageStacks() {
+            const ecoContainer = document.getElementById('eco-stack-container');
+            const lawContainer = document.getElementById('law-stack-container');
+            ecoContainer.innerHTML = ""; lawContainer.innerHTML = "";
+            for(let i=0; i<savedInventory.eco; i++) {
+                const img = document.createElement('img'); img.src = PATH_WOOD; img.className = 'stacked-img'; ecoContainer.appendChild(img);
+            }
+            for(let i=0; i<savedInventory.law; i++) {
+                const img = document.createElement('img'); img.src = PATH_VOLT; img.className = 'stacked-img'; lawContainer.appendChild(img);
+            }
+        }
+
+        function saveDailyLog() {
+            const hrs = document.getElementById('log-hours').value;
+            const mins = document.getElementById('log-mins').value;
+            if (hrs === "" && mins === "") return;
+            timeLogs[currentDay] = (hrs ? `${hrs}시간 ` : "0시간 ") + (mins ? `${mins}분` : "0분");
+            localStorage.setItem('v12_logs', JSON.stringify(timeLogs));
+            document.getElementById('log-hours').value = ""; document.getElementById('log-mins').value = "";
+            alert(`Day ${currentDay} 순공 시간 매핑 성공!`);
+            initGame();
+        }
+
+        function earnMaterial(type, e) {
+            if (isExploded) return;
+            const panel = document.getElementById('main-panel');
+            const rect = e.currentTarget.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            const startX = rect.left - panelRect.left + rect.width / 2;
+            const startY = rect.top - panelRect.top + rect.height / 2;
+
+            const canvas = document.getElementById('canvas-area');
+            canvas.classList.remove('shake'); void canvas.offsetWidth; canvas.classList.add('shake');
+            setTimeout(() => canvas.classList.remove('shake'), 120);
+
+            const targetBoxId = type === 'eco' ? 'eco-item-box' : 'law-item-box';
+            document.getElementById(targetBoxId).classList.remove('item-shake');
+            void document.getElementById(targetBoxId).offsetWidth;
+            document.getElementById(targetBoxId).classList.add('item-shake');
+
+            comboCount++;
+            const banner = document.getElementById('combo-banner');
+            banner.style.display = 'block';
+            banner.classList.add('pulse');
+            document.getElementById('combo-count').innerText = comboCount;
+            
+            clearTimeout(comboTimer);
+            let gracePeriod = comboMaxDuration > 0 ? comboMaxDuration * 1000 : 12000;
+            comboTimer = setTimeout(() => { 
+                comboCount = 0; 
+                document.getElementById('combo-banner').style.display = 'none'; 
+                document.getElementById('combo-banner').classList.remove('pulse');
+                initGame(); 
+            }, gracePeriod);
+
+            let earnedAmount = 1;
+            playNormalSound();
+
+            if (type === 'eco') savedInventory.eco += earnedAmount;
+            else savedInventory.law += earnedAmount;
+            
+            totalEarnedCount += earnedAmount;
+            localStorage.setItem('v12_inventory', JSON.stringify(savedInventory));
+            localStorage.setItem('v12_total_earned', totalEarnedCount);
+
+            const color = type === 'eco' ? '#00ff66' : '#ff9900';
+            const sparkCount = comboCount >= 5 ? 55 : 20;
+            for (let i = 0; i < sparkCount; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                spark.style.backgroundColor = comboCount >= 5 ? '#ff007f' : color;
+                spark.style.boxShadow = `0 0 10px ${spark.style.backgroundColor}`;
+                spark.style.left = startX + 'px'; spark.style.top = startY + 'px';
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * (comboCount >= 5 ? 150 : 80) + 40;
+                spark.style.setProperty('--tx', Math.cos(angle) * speed + 'px');
+                spark.style.setProperty('--ty', Math.sin(angle) * speed + 'px');
+                panel.appendChild(spark);
+                setTimeout(() => spark.remove(), 550);
+            }
+
+            playerXP += earnedAmount * 25;
+            const xpMax = playerLevel * 100;
+            if (playerXP >= xpMax) {
+                playerXP -= xpMax; playerLevel++;
+                localStorage.setItem('v12_level', playerLevel);
+            }
+            localStorage.setItem('v12_xp', playerXP);
+
+            initGame();
+        }
+
+        function playNormalSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(523.25, ctx.currentTime); osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.06);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime); osc.start(); osc.stop(ctx.currentTime + 0.12);
+            } catch(e){}
+        }
+
+        function buildBridgeSegment() {
+            if (isExploded) return;
+            if (completedDays.includes(currentDay)) return;
+            const req = gameData[currentDay - 1];
+            if (savedInventory.eco < req.eco || savedInventory.law < req.law) {
+                alert(`교각 자재 부족! 요구량 -> 상판: ${req.eco} / 볼트: ${req.law}`);
+                return;
+            }
+            savedInventory.eco -= req.eco; savedInventory.law -= req.law;
+            localStorage.setItem('v12_inventory', JSON.stringify(savedInventory));
+            
+            completedDays.push(currentDay);
+            localStorage.setItem('v12_completed', JSON.stringify(completedDays));
+
+            const flashOverlay = document.getElementById('flash-screen');
+            flashOverlay.classList.remove('active'); void flashOverlay.offsetWidth; flashOverlay.classList.add('active');
+
+            if (currentDay < 9) currentDay++;
+            initGame();
+        }
+
+        function renderFooterControls() {
+            const footer = document.getElementById('footer-controls');
+            if (completedDays.length === 9) {
+                if (isExploded) {
+                    footer.innerHTML = `<span style="color:var(--stop-color); font-weight:bold;">💥 배수의 진 기동 완료.</span><button class="reset-btn" onclick="resetGame()">재건축</button>`;
+                } else {
+                    footer.innerHTML = `<button class="btn-boom" onclick="triggerExplosion()">🔥 배수의 진: 다리 최종 폭파 가동</button><button class="reset-btn" onclick="resetGame()">초기화</button>`;
+                }
+            } else {
+                footer.innerHTML = `<button class="reset-btn" onclick="resetGame()">작전 초기화</button>`;
+            }
+        }
+
+        function triggerExplosion() {
+            const canvas = document.getElementById('canvas-area');
+            canvas.classList.add('shake');
+            setTimeout(() => {
+                canvas.classList.remove('shake'); isExploded = true;
+                localStorage.setItem('v12_is_exploded', 'true');
+                initGame();
+            }, 1800);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('logger-table-body');
+            tbody.innerHTML = "";
+            gameData.forEach(d => {
+                const tr = document.createElement('tr'); const logTime = timeLogs[d.day] || `<span style="color:#4c566a;">기록 없음</span>`;
+                tr.innerHTML = `<td>Day ${d.day}</td><td>${d.targetTime}</td><td>🧱${d.eco} / 🔩${d.law}</td><td style="color:var(--accent-color); font-weight:bold;">${logTime}</td><td>${completedDays.includes(d.day) ? "🟢 완공" : "🔒 대기"}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function resetGame() {
+            if (confirm("모든 데이터를 포맷하시겠습니까?")) {
+                localStorage.clear();
+                completedDays = []; savedInventory = { eco: 0, law: 0 }; totalEarnedCount = 0; playerLevel = 1; playerXP = 0; timeLogs = {}; isExploded = false; currentDay = 1;
+                killTimer();
+                initGame();
+            }
+        }
+
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            } catch(e) {}
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
